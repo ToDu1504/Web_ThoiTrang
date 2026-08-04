@@ -414,13 +414,15 @@ src/
 
 ## 7. Lộ trình triển khai đề xuất (cho người mới học)
 
-1. **Giai đoạn 1 – Nền tảng**: Thiết kế DB, tạo entity + repository cơ bản (User, Product, Category)
-2. **Giai đoạn 2 – Auth**: Đăng ký/đăng nhập JWT, phân quyền
-3. **Giai đoạn 3 – Sản phẩm**: CRUD sản phẩm, danh mục, upload ảnh
-4. **Giai đoạn 4 – Giỏ hàng & Đơn hàng**: Cart, Checkout, quản lý trạng thái đơn
-5. **Giai đoạn 5 – Thanh toán**: Tích hợp MoMo/VNPay
-6. **Giai đoạn 6 – Nâng cao**: Review, Voucher, Wishlist, Cache Redis
-7. **Giai đoạn 7 – Admin dashboard**: Thống kê, quản lý toàn diện
+> ✅ = đã triển khai xong. Xem mục 9 cho phần frontend, mục 10 cho hướng dẫn chạy dự án thật.
+
+1. ✅ **Giai đoạn 1 – Nền tảng**: Thiết kế DB, tạo entity + repository cơ bản (User, Product, Category)
+2. ✅ **Giai đoạn 2 – Auth**: Đăng ký/đăng nhập JWT (access + refresh token), phân quyền theo Role
+3. ✅ **Giai đoạn 3 – Sản phẩm**: CRUD sản phẩm (kèm biến thể size/màu), danh mục, thương hiệu, upload ảnh (lưu đĩa cục bộ, trừu tượng hóa qua `FileStorageService` để sau đổi sang S3/Cloudinary)
+4. ✅ **Giai đoạn 4 – Giỏ hàng & Đơn hàng**: Cart (khách + thành viên), Checkout, khóa bi quan chống oversell, quản lý trạng thái đơn
+5. ✅ **Giai đoạn 5 – Thanh toán**: Tích hợp VNPay (build + ký + verify URL thanh toán, xử lý callback return/IPN). MoMo **chưa** làm — xem ghi chú trong lịch sử trao đổi, chưa có API contract được kiểm chứng
+6. ✅ **Giai đoạn 6 – Nâng cao**: Review, Voucher (áp dụng lúc checkout), Wishlist, Cache Redis (danh mục/thương hiệu/chi tiết sản phẩm)
+7. ✅ **Giai đoạn 7 – Admin dashboard**: Thống kê doanh thu/đơn hàng/top sản phẩm bán chạy, quản lý người dùng (khóa/mở khóa, gán vai trò)
 
 ---
 
@@ -428,3 +430,145 @@ src/
 - Nếu quy mô lớn, có thể tách `Product Service`, `Order Service`, `User Service` thành microservices riêng, giao tiếp qua REST/Message Queue (Kafka/RabbitMQ)
 - Có thể thêm Elasticsearch để tìm kiếm sản phẩm nâng cao (full-text search, gợi ý)
 - Thêm tính năng "gợi ý sản phẩm" dựa trên lịch sử mua hàng (recommendation) ở giai đoạn sau
+
+---
+
+## 9. Kế hoạch triển khai Frontend (React SPA)
+
+> Backend (Giai đoạn 1–7 ở mục 7) đã hoàn thành đầy đủ dạng REST API JSON thuần + JWT qua header `Authorization: Bearer <token>`. Frontend đi theo hướng **React SPA gọi thẳng REST API**, không dùng Thymeleaf.
+
+### 9.1. Tech stack
+
+| Thành phần | Công nghệ |
+|---|---|
+| Build tool | Vite |
+| Ngôn ngữ | TypeScript |
+| UI framework | React 18 |
+| Styling | TailwindCSS |
+| Routing | React Router v6 |
+| Data fetching / cache | TanStack Query (React Query) |
+| Global state (auth, cart badge...) | Zustand |
+| HTTP client | Axios (interceptor tự gắn JWT + tự refresh token khi 401) |
+| Form + validate | React Hook Form + Zod |
+| Icon | lucide-react |
+
+Vị trí: thư mục `frontend/` ngay trong repo hiện tại (monorepo đơn giản, không tách repo riêng).
+
+### 9.2. Danh sách API thực tế (đầy đủ hơn bảng ở mục 4.4)
+
+**Auth** (public)
+- `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/refresh-token`
+
+**Public (khách + thành viên)**
+- `GET /api/products?keyword&categoryId&brandId&minPrice&maxPrice&page&size&sort`
+- `GET /api/products/{slug}`
+- `GET /api/products/{productId}/reviews`
+- `GET /api/categories`, `GET /api/categories/{id}`
+- `GET /api/brands`, `GET /api/brands/{id}`
+- `GET /uploads/**` (ảnh sản phẩm)
+
+**Cart** (khách qua header `X-Session-Id`, thành viên qua JWT — không cần cả hai)
+- `GET /api/cart`, `POST /api/cart/items`, `PUT /api/cart/items/{id}`, `DELETE /api/cart/items/{id}`
+
+**Customer** (cần JWT)
+- `POST /api/orders` (checkout, hỗ trợ `voucherCode`, `paymentMethod`: COD/VNPAY → trả kèm `paymentUrl` nếu VNPAY)
+- `GET /api/orders/{id}`, `GET /api/orders/my-orders`
+- `POST /api/reviews`
+- `GET /api/wishlist`, `POST /api/wishlist`, `DELETE /api/wishlist/{productId}`
+- `GET /api/payments/vnpay/return` (trang kết quả thanh toán VNPay redirect về)
+
+**Admin/Staff** (`ROLE_ADMIN`/`ROLE_STAFF`, riêng gán role user chỉ `ROLE_ADMIN`)
+- `/api/admin/categories`, `/api/admin/brands` (CRUD)
+- `/api/admin/products` (CRUD, GET có filter theo status), `POST /api/admin/products/{id}/images`, `DELETE /api/admin/products/{id}/images/{imageId}`
+- `/api/admin/orders` (list/filter theo status), `PUT /api/admin/orders/{id}/status`
+- `/api/admin/vouchers` (CRUD)
+- `/api/admin/users` (list/search), `PUT /api/admin/users/{id}/status`, `PUT /api/admin/users/{id}/roles` (ADMIN-only)
+- `GET /api/admin/dashboard/stats`
+
+Tất cả response đều bọc trong `ApiResponse<T>` (mục 4.3): `{ success, message, data, timestamp }`.
+
+### 9.3. Cấu trúc thư mục
+
+```
+frontend/
+├── src/
+│   ├── api/                # axios instance + hàm gọi API theo module (auth.ts, products.ts, cart.ts...)
+│   ├── components/         # Header, Footer, ProductCard, CartDrawer, ProtectedRoute...
+│   ├── pages/
+│   │   ├── customer/        # Home, ProductList, ProductDetail, Cart, Checkout, OrderHistory, OrderDetail, Login, Register, Wishlist
+│   │   └── admin/           # Dashboard, Products, Orders, Categories, Brands, Vouchers, Users
+│   ├── store/                # Zustand: authStore (user, tokens), cartStore (badge count)
+│   ├── hooks/                # useAuth, useCart, useProducts (React Query wrappers)
+│   ├── types/                 # TypeScript interfaces khớp với DTO backend
+│   ├── routes/                 # React Router config, ProtectedRoute theo role
+│   └── App.tsx
+├── .env                     # VITE_API_BASE_URL=http://localhost:8080
+└── vite.config.ts
+```
+
+### 9.4. Luồng xác thực
+
+- Lưu `accessToken` + `refreshToken` sau khi login/register (Zustand + localStorage persist)
+- Axios request interceptor: tự gắn `Authorization: Bearer <accessToken>`
+- Axios response interceptor: nếu 401 → gọi `POST /api/auth/refresh-token`, cập nhật token, retry request gốc; nếu refresh cũng fail → logout, chuyển về `/login`
+- Giỏ hàng khách: sinh `X-Session-Id` (UUID) lưu localStorage, gắn vào mọi request `/api/cart/**` khi chưa đăng nhập
+
+### 9.5. Lộ trình triển khai (mirror theo giai đoạn backend)
+
+> ✅ Cả 5 phase đã triển khai xong. Biểu đồ dùng thanh bar CSS đơn giản thay vì Recharts (đủ dùng cho quy mô hiện tại, chưa cần thêm thư viện).
+
+1. ✅ **Phase 1 — Khởi tạo & Auth**: scaffold Vite + Tailwind + Router, axios client + interceptor (tự refresh token khi 401), trang Login/Register, layout chung (Header/Footer), Zustand authStore
+2. ✅ **Phase 2 — Duyệt sản phẩm**: trang chủ, danh sách sản phẩm (filter danh mục/thương hiệu/giá, tìm kiếm), chi tiết sản phẩm (chọn size/màu, ảnh, đánh giá)
+3. ✅ **Phase 3 — Giỏ hàng & Checkout**: thêm/sửa/xóa giỏ hàng (khách qua `X-Session-Id` + thành viên qua JWT), trang checkout, áp voucher, chọn COD/VNPay (redirect sang cổng thanh toán), trang kết quả thanh toán (`/payment/vnpay-return`)
+4. ✅ **Phase 4 — Tài khoản khách hàng**: lịch sử đơn hàng, chi tiết đơn, wishlist
+5. ✅ **Phase 5 — Admin dashboard**: layout riêng có sidebar, thống kê, CRUD sản phẩm (kèm biến thể + upload/xóa ảnh)/danh mục/thương hiệu/voucher, quản lý đơn hàng (đổi trạng thái), quản lý user (khóa/mở khóa, gán vai trò — ADMIN-only)
+
+---
+
+## 10. Hướng dẫn chạy dự án (local, Windows + Laragon)
+
+Repo tách 2 thư mục độc lập ở gốc: `backend/` (Spring Boot, Maven) và `frontend/` (Vite/React).
+
+### 10.1. Khởi động hạ tầng
+
+```bash
+# MySQL
+"C:\laragon\bin\mysql\mysql-8.4.3-winx64\bin\mysqld.exe" --defaults-file="C:\laragon\bin\mysql\mysql-8.4.3-winx64\my.ini"
+
+# Redis
+"C:\laragon\bin\redis\redis-x64-5.0.14.1\redis-server.exe" "C:\laragon\bin\redis\redis-x64-5.0.14.1\redis.windows.conf"
+```
+
+Database `fashionshop_db` cần tồn tại sẵn (tạo 1 lần: `CREATE DATABASE fashionshop_db CHARACTER SET utf8mb4`), Hibernate tự tạo/cập nhật bảng từ đó (`ddl-auto=update`). Role mặc định (`ROLE_ADMIN`, `ROLE_STAFF`, `ROLE_CUSTOMER`) tự được tạo lúc khởi động app.
+
+### 10.2. Chạy backend
+
+```bash
+cd backend
+VNPAY_TMN_CODE=xxx VNPAY_HASH_SECRET=xxx ./mvnw.cmd spring-boot:run
+```
+
+`VNPAY_TMN_CODE`/`VNPAY_HASH_SECRET` không bắt buộc để chạy app, chỉ cần khi muốn test luồng thanh toán VNPay thật (đăng ký tài khoản sandbox miễn phí tại vnpayment.vn để lấy). Backend chạy ở `http://localhost:8080`.
+
+### 10.3. Chạy frontend
+
+```bash
+cd frontend
+npm install   # lần đầu
+npm run dev -- --port 5174 --strictPort
+```
+
+**Bắt buộc chạy đúng cổng 5174** — backend cấu hình `vnpay.return-url` trỏ cứng vào `http://localhost:5174/payment/vnpay-return`. Frontend chạy ở `http://localhost:5174`.
+
+### 10.4. Lưu ý khi gặp lỗi
+
+- **Các API `/api/categories`, `/api/brands`, `/api/products/{slug}` từng bị lỗi 500 `SerializationException`** khi dữ liệu cache cũ trong Redis (`dump.rdb` ở gốc repo, tự nạp lại mỗi lần Redis khởi động) không tương thích với format serializer hiện tại. Đã có `CacheErrorHandler` (`RedisConfig`) tự bắt lỗi và fallback về database nên không còn làm sập API nữa — nhưng nếu muốn dọn sạch cache cũ vẫn có thể chạy `redis-cli FLUSHALL`.
+
+### 10.5. Tài khoản test có sẵn
+
+Mật khẩu chung: `123456`
+
+| Email | Vai trò | Ghi chú |
+|---|---|---|
+| `test@example.com` | ROLE_ADMIN, ROLE_CUSTOMER | Nguyen Van A — dùng để đăng nhập vào `/admin` |
+| `userb@example.com` | ROLE_CUSTOMER | Tran Thi B — tài khoản khách hàng thường |
