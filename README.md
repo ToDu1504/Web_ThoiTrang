@@ -39,19 +39,18 @@ Xây dựng website bán quần áo (e-commerce thời trang) gồm:
 
 ## 2. Kiến trúc tổng thể hệ thống
 
+> Sơ đồ dưới đây phản ánh đúng những gì đã triển khai thật (xem mục 9–10). Bản kế hoạch ban đầu có tính thêm API Gateway và Cloud Storage như hướng mở rộng — không triển khai vì quy mô hiện tại chưa cần, ghi chú lại ở mục 8.
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        CLIENT LAYER                          │
-│   React/Vue SPA (Customer)      Admin Dashboard (React)      │
+│         React SPA (frontend/) — Vite + TypeScript            │
+│   Trang khách hàng (/...)      Trang admin (/admin/*)        │
 └───────────────────────────┬───────────────────────────────────┘
-                            │ HTTPS/REST JSON (Axios/Fetch)
+                            │ HTTPS/REST JSON (Axios)
+                            │ Authorization: Bearer <JWT> / X-Session-Id
 ┌───────────────────────────▼───────────────────────────────────┐
-│                     API GATEWAY (tuỳ chọn)                    │
-│         Nginx reverse proxy / Spring Cloud Gateway            │
-└───────────────────────────┬───────────────────────────────────┘
-                            │
-┌───────────────────────────▼───────────────────────────────────┐
-│                SPRING BOOT APPLICATION (Monolith)              │
+│                SPRING BOOT APPLICATION (Monolith, backend/)    │
 │  ┌───────────────────────────────────────────────────────┐    │
 │  │  Controller Layer (REST Controllers)                   │    │
 │  ├───────────────────────────────────────────────────────┤    │
@@ -61,21 +60,25 @@ Xây dựng website bán quần áo (e-commerce thời trang) gồm:
 │  ├───────────────────────────────────────────────────────┤    │
 │  │  Security Layer (Spring Security + JWT)                │    │
 │  └───────────────────────────────────────────────────────┘    │
-└───────────────┬───────────────────────────────┬────────────────┘
-                │                               │
-     ┌──────────▼──────────┐         ┌──────────▼──────────┐
-     │   MySQL/PostgreSQL   │         │   Redis (Cache)      │
-     │   (Dữ liệu chính)     │         │   Session/Cart cache │
-     └──────────────────────┘         └──────────────────────┘
-                │
-     ┌──────────▼──────────┐
-     │  Cloud Storage        │
-     │  (AWS S3/Cloudinary)  │
-     │  Ảnh sản phẩm          │
-     └────────────────────────┘
+└───────┬───────────────────┬───────────────────┬────────────────┘
+       │                   │                   │
+┌──────▼──────────┐ ┌──────▼──────────┐ ┌──────▼──────────────┐
+│      MySQL       │ │  Redis (Cache)   │ │  Local disk storage  │
+│   (Dữ liệu chính) │ │  categories/     │ │  (uploads/, phục vụ  │
+│                   │ │  brands/products │ │  qua /uploads/**)    │
+└───────────────────┘ └──────────────────┘ └───────────────────────┘
+        │
+┌───────▼───────────────┐
+│  VNPay sandbox API      │
+│  (build/ký/verify URL   │
+│  thanh toán, callback   │
+│  return + IPN)          │
+└──────────────────────────┘
 ```
 
-**Gợi ý**: bắt đầu với kiến trúc **Monolith layered** (dễ triển khai, phù hợp đồ án/dự án cá nhân), sau này có thể tách thành microservices (Product Service, Order Service, User Service...) nếu quy mô lớn.
+Không có API Gateway hay reverse proxy — frontend gọi thẳng backend qua Axios (`src/api/client.ts`). Ảnh sản phẩm lưu đĩa cục bộ qua `FileStorageService` (không phải cloud storage) — xem mục 8 cho lý do và hướng đổi sang S3/Cloudinary sau này. Admin dashboard không phải app React riêng mà là một nhánh route (`/admin/*`) trong cùng SPA, gate theo role ở `ProtectedRoute`.
+
+**Gợi ý ban đầu**: bắt đầu với kiến trúc **Monolith layered** (dễ triển khai, phù hợp đồ án/dự án cá nhân), sau này có thể tách thành microservices (Product Service, Order Service, User Service...) nếu quy mô lớn — chưa cần ở giai đoạn hiện tại.
 
 ---
 
@@ -427,6 +430,8 @@ src/
 ---
 
 ## 8. Ghi chú mở rộng
+- Ảnh sản phẩm hiện lưu đĩa cục bộ qua `FileStorageService` (`LocalFileStorageServiceImpl`), trừu tượng hóa sau interface sẵn để đổi sang AWS S3/Cloudinary khi cần scale-out (nhiều instance backend không share được đĩa cục bộ)
+- Chưa cần API Gateway/reverse proxy (Nginx, Spring Cloud Gateway) ở quy mô 1 instance backend — cân nhắc thêm khi có nhiều service hoặc cần rate-limit/SSL termination tập trung
 - Nếu quy mô lớn, có thể tách `Product Service`, `Order Service`, `User Service` thành microservices riêng, giao tiếp qua REST/Message Queue (Kafka/RabbitMQ)
 - Có thể thêm Elasticsearch để tìm kiếm sản phẩm nâng cao (full-text search, gợi ý)
 - Thêm tính năng "gợi ý sản phẩm" dựa trên lịch sử mua hàng (recommendation) ở giai đoạn sau
