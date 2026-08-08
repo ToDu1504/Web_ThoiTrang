@@ -7,6 +7,14 @@ import { getBrands } from '../../api/brands';
 import { getErrorMessage } from '../../lib/errors';
 import { formatCurrency } from '../../lib/format';
 import type { ProductRequest, ProductResponse, ProductVariantRequest } from '../../types/product';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -116,147 +124,157 @@ export function AdminProductsPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900">Sản phẩm</h1>
-        <button
+        <h1 className="font-display text-2xl font-semibold text-foreground">Sản phẩm</h1>
+        <Button
           onClick={() => {
             resetForm();
             setShowForm(true);
           }}
-          className="flex items-center gap-1 rounded-md bg-brand-600 px-4 py-1.5 text-sm text-white hover:bg-brand-700"
         >
-          <Plus size={16} /> Thêm sản phẩm
-        </button>
+          <Plus className="size-4" /> Thêm sản phẩm
+        </Button>
       </div>
 
-      {showForm && (
-        <div className="mb-6 rounded-md border border-gray-200 p-4">
-          <h2 className="mb-3 font-medium text-gray-900">{editing ? `Sửa: ${editing.name}` : 'Sản phẩm mới'}</h2>
+      <Dialog open={showForm} onOpenChange={(open) => !open && resetForm()}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editing ? `Sửa: ${editing.name}` : 'Sản phẩm mới'}</DialogTitle>
+          </DialogHeader>
 
-          {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
+          {error && (
+            <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              {error}
+            </p>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-gray-500">Tên sản phẩm</label>
-              <input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-              />
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Tên sản phẩm</Label>
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </div>
-            <div>
-              <label className="block text-xs text-gray-500">Giá gốc</label>
-              <input
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Giá gốc</Label>
+              <Input
                 type="number"
                 value={form.basePrice || ''}
                 onChange={(e) => setForm({ ...form, basePrice: Number(e.target.value) })}
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
               />
             </div>
-            <div>
-              <label className="block text-xs text-gray-500">Danh mục</label>
-              <select
-                value={form.categoryId || ''}
-                onChange={(e) => setForm({ ...form, categoryId: Number(e.target.value) })}
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Danh mục</Label>
+              <Select
+                value={form.categoryId ? String(form.categoryId) : ''}
+                onValueChange={(v) => setForm({ ...form, categoryId: Number(v) })}
               >
-                <option value="">-- Chọn --</option>
-                {categories?.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="-- Chọn --" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories?.map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <label className="block text-xs text-gray-500">Thương hiệu</label>
-              <select
-                value={form.brandId ?? ''}
-                onChange={(e) => setForm({ ...form, brandId: e.target.value ? Number(e.target.value) : undefined })}
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Thương hiệu</Label>
+              <Select
+                value={form.brandId ? String(form.brandId) : 'none'}
+                onValueChange={(v) => setForm({ ...form, brandId: v === 'none' ? undefined : Number(v) })}
               >
-                <option value="">-- Không --</option>
-                {brands?.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="-- Không --" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">-- Không --</SelectItem>
+                  {brands?.map((b) => (
+                    <SelectItem key={b.id} value={String(b.id)}>
+                      {b.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="col-span-2">
-              <label className="block text-xs text-gray-500">Mô tả</label>
-              <textarea
+            <div className="col-span-2 space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Mô tả</Label>
+              <Textarea
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 rows={2}
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
               />
             </div>
           </div>
 
-          <div className="mt-4">
+          <div>
             <div className="mb-2 flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-700">Biến thể (size / màu / SKU / tồn kho)</label>
+              <Label className="text-sm font-medium text-foreground">Biến thể (size / màu / SKU / tồn kho)</Label>
               <button
                 onClick={() => setForm({ ...form, variants: [...(form.variants ?? []), { ...emptyVariant }] })}
-                className="text-xs text-brand-600 hover:underline"
+                className="text-xs font-medium text-foreground underline underline-offset-2"
               >
                 + Thêm biến thể
               </button>
             </div>
-            {form.variants?.map((variant, index) => (
-              <div key={index} className="mb-2 flex gap-2">
-                <input
-                  placeholder="Size"
-                  value={variant.size}
-                  onChange={(e) => updateVariant(index, 'size', e.target.value)}
-                  className="w-20 rounded-md border border-gray-300 px-2 py-1 text-sm"
-                />
-                <input
-                  placeholder="Màu"
-                  value={variant.color}
-                  onChange={(e) => updateVariant(index, 'color', e.target.value)}
-                  className="w-24 rounded-md border border-gray-300 px-2 py-1 text-sm"
-                />
-                <input
-                  placeholder="SKU"
-                  value={variant.sku}
-                  onChange={(e) => updateVariant(index, 'sku', e.target.value)}
-                  className="w-32 rounded-md border border-gray-300 px-2 py-1 text-sm"
-                />
-                <input
-                  type="number"
-                  placeholder="Tồn kho"
-                  value={variant.stockQuantity || ''}
-                  onChange={(e) => updateVariant(index, 'stockQuantity', Number(e.target.value))}
-                  className="w-24 rounded-md border border-gray-300 px-2 py-1 text-sm"
-                />
-                <button
-                  onClick={() => setForm({ ...form, variants: form.variants?.filter((_, i) => i !== index) })}
-                  className="text-gray-400 hover:text-red-600"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
+            <div className="space-y-2">
+              {form.variants?.map((variant, index) => (
+                <div key={index} className="flex gap-2">
+                  <Input
+                    placeholder="Size"
+                    value={variant.size}
+                    onChange={(e) => updateVariant(index, 'size', e.target.value)}
+                    className="w-20"
+                  />
+                  <Input
+                    placeholder="Màu"
+                    value={variant.color}
+                    onChange={(e) => updateVariant(index, 'color', e.target.value)}
+                    className="w-24"
+                  />
+                  <Input
+                    placeholder="SKU"
+                    value={variant.sku}
+                    onChange={(e) => updateVariant(index, 'sku', e.target.value)}
+                    className="flex-1"
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Tồn kho"
+                    value={variant.stockQuantity || ''}
+                    onChange={(e) => updateVariant(index, 'stockQuantity', Number(e.target.value))}
+                    className="w-24"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => setForm({ ...form, variants: form.variants?.filter((_, i) => i !== index) })}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
 
           {editing && (
-            <div className="mt-4">
-              <label className="mb-2 block text-sm font-medium text-gray-700">Ảnh sản phẩm</label>
+            <div>
+              <Label className="mb-2 block text-sm font-medium text-foreground">Ảnh sản phẩm</Label>
               <div className="flex flex-wrap gap-2">
                 {editing.images.map((img) => (
-                  <div key={img.id} className="relative h-16 w-16 overflow-hidden rounded border border-gray-200">
+                  <div key={img.id} className="relative size-16 overflow-hidden rounded-md border border-border">
                     <img src={`${API_BASE_URL}${img.imageUrl}`} alt="" className="h-full w-full object-cover" />
                     <button
                       onClick={() => deleteImageMutation.mutate({ productId: editing.id, imageId: img.id })}
-                      className="absolute right-0 top-0 bg-white/80 p-0.5 text-red-600"
+                      className="absolute right-0 top-0 bg-background/80 p-0.5 text-destructive"
                     >
-                      <Trash2 size={12} />
+                      <Trash2 className="size-3" />
                     </button>
                   </div>
                 ))}
-                <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded border border-dashed border-gray-300 text-gray-400 hover:border-brand-400">
-                  <Upload size={18} />
+                <label className="flex size-16 cursor-pointer items-center justify-center rounded-md border border-dashed border-border text-muted-foreground hover:border-foreground">
+                  <Upload className="size-4.5" />
                   <input
                     type="file"
                     accept="image/*"
@@ -271,52 +289,64 @@ export function AdminProductsPage() {
             </div>
           )}
 
-          <div className="mt-4 flex gap-2">
-            <button onClick={handleSubmit} className="rounded-md bg-brand-600 px-4 py-1.5 text-sm text-white hover:bg-brand-700">
-              {editing ? 'Cập nhật' : 'Tạo sản phẩm'}
-            </button>
-            <button onClick={resetForm} className="rounded-md border border-gray-300 px-4 py-1.5 text-sm text-gray-600">
+          <DialogFooter>
+            <Button variant="outline" onClick={resetForm}>
               Hủy
-            </button>
-          </div>
-        </div>
-      )}
+            </Button>
+            <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
+              {editing ? 'Cập nhật' : 'Tạo sản phẩm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {isLoading && <p className="text-gray-500">Đang tải...</p>}
-
-      <table className="w-full text-left text-sm">
-        <thead>
-          <tr className="border-b border-gray-200 text-gray-500">
-            <th className="py-2">Tên</th>
-            <th className="py-2">Danh mục</th>
-            <th className="py-2">Giá</th>
-            <th className="py-2">Trạng thái</th>
-            <th className="py-2"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {data?.content.map((p) => (
-            <tr key={p.id} className="border-b border-gray-100">
-              <td className="py-2">{p.name}</td>
-              <td className="py-2 text-gray-500">{p.categoryName}</td>
-              <td className="py-2">{formatCurrency(p.basePrice)}</td>
-              <td className="py-2">
-                <span className={`rounded-full px-2 py-0.5 text-xs ${p.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                  {p.status}
-                </span>
-              </td>
-              <td className="py-2 text-right">
-                <button onClick={() => startEdit(p)} className="mr-2 text-gray-500 hover:text-brand-600">
-                  <Pencil size={14} />
-                </button>
-                <button onClick={() => deleteMutation.mutate(p.id)} className="text-gray-500 hover:text-red-600">
-                  <Trash2 size={14} />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="rounded-xl border border-border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Tên</TableHead>
+              <TableHead>Danh mục</TableHead>
+              <TableHead>Giá</TableHead>
+              <TableHead>Trạng thái</TableHead>
+              <TableHead className="text-right">Thao tác</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  Đang tải...
+                </TableCell>
+              </TableRow>
+            )}
+            {data?.content.map((p) => (
+              <TableRow key={p.id}>
+                <TableCell className="font-medium text-foreground">{p.name}</TableCell>
+                <TableCell className="text-muted-foreground">{p.categoryName}</TableCell>
+                <TableCell className="text-muted-foreground">{formatCurrency(p.basePrice)}</TableCell>
+                <TableCell>
+                  <Badge variant="secondary" className={p.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-muted text-muted-foreground'}>
+                    {p.status}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button variant="ghost" size="icon-sm" onClick={() => startEdit(p)}>
+                    <Pencil className="size-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => deleteMutation.mutate(p.id)}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

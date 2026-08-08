@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pencil, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { getBrands } from '../../api/brands';
 import { createBrand, deleteBrand, updateBrand } from '../../api/admin/brands';
 import { getErrorMessage } from '../../lib/errors';
 import type { BrandRequest } from '../../types/product';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const emptyForm: BrandRequest = { name: '', logoUrl: '' };
 
@@ -13,7 +18,6 @@ export function AdminBrandsPage() {
   const { data: brands } = useQuery({ queryKey: ['brands'], queryFn: getBrands });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<BrandRequest>(emptyForm);
-  const [error, setError] = useState<string | null>(null);
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['brands'] });
@@ -24,8 +28,9 @@ export function AdminBrandsPage() {
     onSuccess: () => {
       invalidate();
       setForm(emptyForm);
+      toast.success('Đã thêm thương hiệu');
     },
-    onError: (err) => setError(getErrorMessage(err)),
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
   const updateMutation = useMutation({
@@ -34,20 +39,20 @@ export function AdminBrandsPage() {
       invalidate();
       setEditingId(null);
       setForm(emptyForm);
+      toast.success('Đã cập nhật thương hiệu');
     },
-    onError: (err) => setError(getErrorMessage(err)),
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteBrand(id),
     onSuccess: invalidate,
-    onError: (err) => setError(getErrorMessage(err)),
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
   function handleSubmit() {
-    setError(null);
     if (!form.name.trim()) {
-      setError('Tên thương hiệu không được để trống');
+      toast.error('Tên thương hiệu không được để trống');
       return;
     }
     if (editingId) updateMutation.mutate({ id: editingId, payload: form });
@@ -56,73 +61,72 @@ export function AdminBrandsPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-gray-900">Thương hiệu</h1>
+      <h1 className="font-display mb-6 text-2xl font-semibold text-foreground">Thương hiệu</h1>
 
-      <div className="mb-6 flex flex-wrap items-end gap-2 rounded-md border border-gray-200 p-4">
-        <div>
-          <label className="block text-xs text-gray-500">Tên thương hiệu</label>
-          <input
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="mt-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-          />
+      <div className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Tên thương hiệu</Label>
+          <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-48" />
         </div>
-        <div>
-          <label className="block text-xs text-gray-500">Logo URL</label>
-          <input
-            value={form.logoUrl}
-            onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
-            className="mt-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-          />
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Logo URL</Label>
+          <Input value={form.logoUrl} onChange={(e) => setForm({ ...form, logoUrl: e.target.value })} className="w-64" />
         </div>
-        <button onClick={handleSubmit} className="rounded-md bg-brand-600 px-4 py-1.5 text-sm text-white hover:bg-brand-700">
+        <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
           {editingId ? 'Cập nhật' : 'Thêm mới'}
-        </button>
+        </Button>
         {editingId && (
-          <button
+          <Button
+            variant="outline"
             onClick={() => {
               setEditingId(null);
               setForm(emptyForm);
             }}
-            className="rounded-md border border-gray-300 px-4 py-1.5 text-sm text-gray-600"
           >
             Hủy
-          </button>
+          </Button>
         )}
-        {error && <p className="w-full text-sm text-red-600">{error}</p>}
       </div>
 
-      <table className="w-full text-left text-sm">
-        <thead>
-          <tr className="border-b border-gray-200 text-gray-500">
-            <th className="py-2">Tên</th>
-            <th className="py-2">Logo URL</th>
-            <th className="py-2"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {brands?.map((b) => (
-            <tr key={b.id} className="border-b border-gray-100">
-              <td className="py-2">{b.name}</td>
-              <td className="py-2 text-gray-500">{b.logoUrl ?? '-'}</td>
-              <td className="py-2 text-right">
-                <button
-                  onClick={() => {
-                    setEditingId(b.id);
-                    setForm({ name: b.name, logoUrl: b.logoUrl ?? '' });
-                  }}
-                  className="mr-2 text-gray-500 hover:text-brand-600"
-                >
-                  <Pencil size={14} />
-                </button>
-                <button onClick={() => deleteMutation.mutate(b.id)} className="text-gray-500 hover:text-red-600">
-                  <Trash2 size={14} />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="rounded-xl border border-border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Tên</TableHead>
+              <TableHead>Logo URL</TableHead>
+              <TableHead className="text-right">Thao tác</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {brands?.map((b) => (
+              <TableRow key={b.id}>
+                <TableCell className="font-medium text-foreground">{b.name}</TableCell>
+                <TableCell className="max-w-64 truncate text-muted-foreground">{b.logoUrl ?? '-'}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => {
+                      setEditingId(b.id);
+                      setForm({ name: b.name, logoUrl: b.logoUrl ?? '' });
+                    }}
+                  >
+                    <Pencil className="size-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => deleteMutation.mutate(b.id)}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

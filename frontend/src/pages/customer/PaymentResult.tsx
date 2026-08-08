@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { apiClient } from '../../api/client';
 import type { ApiResponse } from '../../types/common';
+import { Button } from '@/components/ui/button';
 
 interface VnPayResult {
   orderCode: string;
@@ -22,20 +25,43 @@ export function PaymentResultPage() {
   }, [searchParams]);
 
   return (
-    <div className="mx-auto max-w-md text-center">
-      {!result && !error && <p className="text-gray-500">Đang xác minh thanh toán...</p>}
-      {error && <p className="text-red-600">{error}</p>}
-      {result && (
+    <div className="mx-auto flex max-w-md flex-col items-center py-16 text-center">
+      {!result && !error && (
         <>
-          <h1 className={`text-2xl font-semibold ${result.success ? 'text-green-600' : 'text-red-600'}`}>
-            {result.success ? 'Thanh toán thành công' : 'Thanh toán thất bại'}
-          </h1>
-          <p className="mt-2 text-gray-600">Mã đơn hàng: {result.orderCode}</p>
+          <Loader2 className="size-10 animate-spin text-muted-foreground" />
+          <p className="mt-4 text-muted-foreground">Đang xác minh thanh toán...</p>
         </>
       )}
-      <Link to="/orders" className="mt-6 inline-block text-brand-600 hover:underline">
-        Xem đơn hàng của tôi
-      </Link>
+
+      {error && (
+        <>
+          <XCircle className="size-14 text-destructive" />
+          <p className="mt-4 text-destructive">{error}</p>
+        </>
+      )}
+
+      {result && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
+          className="flex flex-col items-center"
+        >
+          {result.success ? (
+            <CheckCircle2 className="size-16 text-emerald-600" />
+          ) : (
+            <XCircle className="size-16 text-destructive" />
+          )}
+          <h1 className="font-display mt-5 text-2xl font-semibold text-foreground">
+            {result.success ? 'Thanh toán thành công' : 'Thanh toán thất bại'}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">Mã đơn hàng: {result.orderCode}</p>
+        </motion.div>
+      )}
+
+      <Button asChild className="mt-8">
+        <Link to="/orders">Xem đơn hàng của tôi</Link>
+      </Button>
     </div>
   );
 }

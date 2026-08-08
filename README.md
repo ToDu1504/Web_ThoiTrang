@@ -448,16 +448,21 @@ src/
 |---|---|
 | Build tool | Vite |
 | Ngôn ngữ | TypeScript |
-| UI framework | React 18 |
-| Styling | TailwindCSS |
+| UI framework | React 19 |
+| Styling | TailwindCSS v4 (CSS-based config, không có `tailwind.config.js`) |
+| UI components | shadcn/ui (Radix primitives + `class-variance-authority`, style `new-york`) |
+| Animation | Framer Motion |
 | Routing | React Router v6 |
 | Data fetching / cache | TanStack Query (React Query) |
 | Global state (auth, cart badge...) | Zustand |
 | HTTP client | Axios (interceptor tự gắn JWT + tự refresh token khi 401) |
 | Form + validate | React Hook Form + Zod |
+| Thông báo | Sonner (toast) |
 | Icon | lucide-react |
 
 Vị trí: thư mục `frontend/` ngay trong repo hiện tại (monorepo đơn giản, không tách repo riêng).
+
+Giao diện theo hướng "shop thời trang hiện đại": nền ivory ấm + chữ near-black, accent terracotta (thang màu `brand-*` trong `src/index.css`), font `Fraunces` (serif, tiêu đề/logo) + `Inter` (sans, nội dung) nạp qua Google Fonts trong `index.html`. Khi cần thêm component shadcn mới, dùng đúng `npx shadcn@2.10.0 add <tên>` — bản `@latest` (dòng CLI 4.x) không tương thích với setup Vite + Tailwind v4 của repo này (lỗi `Could not load the workspace config` khi init).
 
 ### 9.2. Danh sách API thực tế (đầy đủ hơn bảng ở mục 4.4)
 
@@ -497,16 +502,21 @@ Tất cả response đều bọc trong `ApiResponse<T>` (mục 4.3): `{ success,
 ```
 frontend/
 ├── src/
-│   ├── api/                # axios instance + hàm gọi API theo module (auth.ts, products.ts, cart.ts...)
-│   ├── components/         # Header, Footer, ProductCard, CartDrawer, ProtectedRoute...
+│   ├── api/                # axios instance (client.ts) + hàm gọi API theo module (auth.ts, products.ts, cart.ts...)
+│   ├── components/
+│   │   ├── ui/               # shadcn/ui components (button, dialog, sheet, sidebar, table...)
+│   │   ├── admin/            # AdminLayout (sidebar quản trị)
+│   │   └── Header.tsx, Footer.tsx, Layout.tsx, ProductCard.tsx
 │   ├── pages/
-│   │   ├── customer/        # Home, ProductList, ProductDetail, Cart, Checkout, OrderHistory, OrderDetail, Login, Register, Wishlist
+│   │   ├── customer/        # Home, ProductList, ProductDetail, Cart, Checkout, Orders, OrderDetail, Login, Register, Wishlist, PaymentResult
 │   │   └── admin/           # Dashboard, Products, Orders, Categories, Brands, Vouchers, Users
-│   ├── store/                # Zustand: authStore (user, tokens), cartStore (badge count)
-│   ├── hooks/                # useAuth, useCart, useProducts (React Query wrappers)
+│   ├── store/                # Zustand: authStore (user, tokens)
+│   ├── hooks/                # useCart (React Query wrappers), use-mobile
 │   ├── types/                 # TypeScript interfaces khớp với DTO backend
-│   ├── routes/                 # React Router config, ProtectedRoute theo role
+│   ├── routes/                 # ProtectedRoute theo role
+│   ├── lib/                    # utils (cn), format, errors, orderStatus, sessionId
 │   └── App.tsx
+├── components.json          # cấu hình shadcn/ui (style new-york, alias @/*)
 ├── .env                     # VITE_API_BASE_URL=http://localhost:8080
 └── vite.config.ts
 ```
@@ -527,6 +537,7 @@ frontend/
 3. ✅ **Phase 3 — Giỏ hàng & Checkout**: thêm/sửa/xóa giỏ hàng (khách qua `X-Session-Id` + thành viên qua JWT), trang checkout, áp voucher, chọn COD/VNPay (redirect sang cổng thanh toán), trang kết quả thanh toán (`/payment/vnpay-return`)
 4. ✅ **Phase 4 — Tài khoản khách hàng**: lịch sử đơn hàng, chi tiết đơn, wishlist
 5. ✅ **Phase 5 — Admin dashboard**: layout riêng có sidebar, thống kê, CRUD sản phẩm (kèm biến thể + upload/xóa ảnh)/danh mục/thương hiệu/voucher, quản lý đơn hàng (đổi trạng thái), quản lý user (khóa/mở khóa, gán vai trò — ADMIN-only)
+6. ✅ **Phase 6 — Redesign giao diện**: chuyển toàn bộ UI (khách hàng + admin) sang shadcn/ui + Framer Motion, thiết lập design system riêng (màu, font, spacing) thay cho bản Tailwind thô ban đầu
 
 ---
 

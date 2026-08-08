@@ -1,10 +1,16 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pencil, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { getCategories } from '../../api/categories';
 import { createCategory, deleteCategory, updateCategory } from '../../api/admin/categories';
 import { getErrorMessage } from '../../lib/errors';
 import type { CategoryRequest } from '../../types/product';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const emptyForm: CategoryRequest = { name: '', slug: '', parentId: null };
 
@@ -13,7 +19,6 @@ export function AdminCategoriesPage() {
   const { data: categories } = useQuery({ queryKey: ['categories'], queryFn: getCategories });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<CategoryRequest>(emptyForm);
-  const [error, setError] = useState<string | null>(null);
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['categories'] });
@@ -24,8 +29,9 @@ export function AdminCategoriesPage() {
     onSuccess: () => {
       invalidate();
       setForm(emptyForm);
+      toast.success('Đã thêm danh mục');
     },
-    onError: (err) => setError(getErrorMessage(err)),
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
   const updateMutation = useMutation({
@@ -34,20 +40,20 @@ export function AdminCategoriesPage() {
       invalidate();
       setEditingId(null);
       setForm(emptyForm);
+      toast.success('Đã cập nhật danh mục');
     },
-    onError: (err) => setError(getErrorMessage(err)),
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteCategory(id),
     onSuccess: invalidate,
-    onError: (err) => setError(getErrorMessage(err)),
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
   function handleSubmit() {
-    setError(null);
     if (!form.name.trim()) {
-      setError('Tên danh mục không được để trống');
+      toast.error('Tên danh mục không được để trống');
       return;
     }
     if (editingId) {
@@ -64,81 +70,84 @@ export function AdminCategoriesPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-gray-900">Danh mục</h1>
+      <h1 className="font-display mb-6 text-2xl font-semibold text-foreground">Danh mục</h1>
 
-      <div className="mb-6 flex flex-wrap items-end gap-2 rounded-md border border-gray-200 p-4">
-        <div>
-          <label className="block text-xs text-gray-500">Tên danh mục</label>
-          <input
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="mt-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-          />
+      <div className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Tên danh mục</Label>
+          <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-48" />
         </div>
-        <div>
-          <label className="block text-xs text-gray-500">Danh mục cha</label>
-          <select
-            value={form.parentId ?? ''}
-            onChange={(e) => setForm({ ...form, parentId: e.target.value ? Number(e.target.value) : null })}
-            className="mt-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Danh mục cha</Label>
+          <Select
+            value={form.parentId ? String(form.parentId) : 'none'}
+            onValueChange={(v) => setForm({ ...form, parentId: v === 'none' ? null : Number(v) })}
           >
-            <option value="">(Không có)</option>
-            {categories
-              ?.filter((c) => c.id !== editingId)
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-          </select>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">(Không có)</SelectItem>
+              {categories
+                ?.filter((c) => c.id !== editingId)
+                .map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
         </div>
-        <button
-          onClick={handleSubmit}
-          className="rounded-md bg-brand-600 px-4 py-1.5 text-sm text-white hover:bg-brand-700"
-        >
+        <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
           {editingId ? 'Cập nhật' : 'Thêm mới'}
-        </button>
+        </Button>
         {editingId && (
-          <button
+          <Button
+            variant="outline"
             onClick={() => {
               setEditingId(null);
               setForm(emptyForm);
             }}
-            className="rounded-md border border-gray-300 px-4 py-1.5 text-sm text-gray-600"
           >
             Hủy
-          </button>
+          </Button>
         )}
-        {error && <p className="w-full text-sm text-red-600">{error}</p>}
       </div>
 
-      <table className="w-full text-left text-sm">
-        <thead>
-          <tr className="border-b border-gray-200 text-gray-500">
-            <th className="py-2">Tên</th>
-            <th className="py-2">Slug</th>
-            <th className="py-2">Danh mục cha</th>
-            <th className="py-2"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {categories?.map((c) => (
-            <tr key={c.id} className="border-b border-gray-100">
-              <td className="py-2">{c.name}</td>
-              <td className="py-2 text-gray-500">{c.slug}</td>
-              <td className="py-2 text-gray-500">{c.parentName ?? '-'}</td>
-              <td className="py-2 text-right">
-                <button onClick={() => startEdit(c.id, c.name, c.parentId)} className="mr-2 text-gray-500 hover:text-brand-600">
-                  <Pencil size={14} />
-                </button>
-                <button onClick={() => deleteMutation.mutate(c.id)} className="text-gray-500 hover:text-red-600">
-                  <Trash2 size={14} />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="rounded-xl border border-border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Tên</TableHead>
+              <TableHead>Slug</TableHead>
+              <TableHead>Danh mục cha</TableHead>
+              <TableHead className="text-right">Thao tác</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {categories?.map((c) => (
+              <TableRow key={c.id}>
+                <TableCell className="font-medium text-foreground">{c.name}</TableCell>
+                <TableCell className="text-muted-foreground">{c.slug}</TableCell>
+                <TableCell className="text-muted-foreground">{c.parentName ?? '-'}</TableCell>
+                <TableCell className="text-right">
+                  <Button variant="ghost" size="icon-sm" onClick={() => startEdit(c.id, c.name, c.parentId)}>
+                    <Pencil className="size-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => deleteMutation.mutate(c.id)}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

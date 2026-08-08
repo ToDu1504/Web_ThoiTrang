@@ -3,9 +3,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { login } from '../../api/auth';
 import { useAuthStore } from '../../store/authStore';
 import { getErrorMessage } from '../../lib/errors';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const loginSchema = z.object({
   email: z.email('Email không hợp lệ'),
@@ -43,57 +47,67 @@ export function LoginPage() {
   }
 
   return (
-    <div className="mx-auto max-w-sm">
-      <h1 className="mb-6 text-2xl font-semibold text-gray-900">Đăng nhập</h1>
+    <div className="-my-8 grid min-h-[calc(100vh-14rem)] grid-cols-1 lg:grid-cols-2">
+      <div className="relative hidden overflow-hidden bg-foreground lg:flex lg:flex-col lg:justify-end lg:p-12">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.08]"
+          style={{
+            backgroundImage:
+              'repeating-linear-gradient(135deg, currentColor 0, currentColor 1px, transparent 1px, transparent 14px)',
+          }}
+        />
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="relative">
+          <p className="font-display text-4xl font-semibold leading-tight text-background">
+            Chào mừng trở lại <span className="italic text-brand-400">FashionShop</span>
+          </p>
+          <p className="mt-4 max-w-sm text-sm text-background/60">
+            Đăng nhập để theo dõi đơn hàng, lưu sản phẩm yêu thích và trải nghiệm mua sắm nhanh hơn.
+          </p>
+        </motion.div>
+      </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-        {serverError && (
-          <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{serverError}</div>
-        )}
-
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            {...register('email')}
-          />
-          {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
-        </div>
-
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-            Mật khẩu
-          </label>
-          <input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            {...register('password')}
-          />
-          {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
-        </div>
-
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+      <div className="flex items-center justify-center px-4 py-12">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="w-full max-w-sm"
         >
-          {submitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
-        </button>
-      </form>
+          <h1 className="font-display text-2xl font-semibold text-foreground">Đăng nhập</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Nhập thông tin tài khoản của bạn</p>
 
-      <p className="mt-4 text-center text-sm text-gray-600">
-        Chưa có tài khoản?{' '}
-        <Link to="/register" className="text-brand-600 hover:underline">
-          Đăng ký
-        </Link>
-      </p>
+          <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4" noValidate>
+            {serverError && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                {serverError}
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" autoComplete="email" {...register('email')} />
+              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="password">Mật khẩu</Label>
+              <Input id="password" type="password" autoComplete="current-password" {...register('password')} />
+              {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+            </div>
+
+            <Button type="submit" disabled={submitting} className="w-full" size="lg">
+              {submitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            </Button>
+          </form>
+
+          <p className="mt-5 text-center text-sm text-muted-foreground">
+            Chưa có tài khoản?{' '}
+            <Link to="/register" className="font-medium text-foreground underline underline-offset-4">
+              Đăng ký
+            </Link>
+          </p>
+        </motion.div>
+      </div>
     </div>
   );
 }

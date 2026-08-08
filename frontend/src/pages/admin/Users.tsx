@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Search } from 'lucide-react';
 import { adminSearchUsers, updateUserRoles, updateUserStatus } from '../../api/admin/users';
 import { useAuthStore } from '../../store/authStore';
+import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const ALL_ROLES = ['ROLE_CUSTOMER', 'ROLE_STAFF', 'ROLE_ADMIN'];
 
@@ -39,66 +44,80 @@ export function AdminUsersPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-gray-900">Người dùng</h1>
+      <h1 className="font-display mb-6 text-2xl font-semibold text-foreground">Người dùng</h1>
 
-      <input
-        placeholder="Tìm theo tên hoặc email..."
-        value={keyword}
-        onChange={(e) => setKeyword(e.target.value)}
-        className="mb-4 w-72 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-      />
+      <div className="relative mb-4 w-72">
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Tìm theo tên hoặc email..."
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          className="pl-9"
+        />
+      </div>
 
-      {isLoading && <p className="text-gray-500">Đang tải...</p>}
-
-      <table className="w-full text-left text-sm">
-        <thead>
-          <tr className="border-b border-gray-200 text-gray-500">
-            <th className="py-2">Họ tên</th>
-            <th className="py-2">Email</th>
-            <th className="py-2">Vai trò</th>
-            <th className="py-2">Trạng thái</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data?.content.map((u) => (
-            <tr key={u.id} className="border-b border-gray-100">
-              <td className="py-2">{u.fullName}</td>
-              <td className="py-2 text-gray-500">{u.email}</td>
-              <td className="py-2">
-                <div className="flex flex-wrap gap-1">
-                  {ALL_ROLES.map((role) => (
-                    <button
-                      key={role}
-                      disabled={!isAdmin}
-                      onClick={() => toggleRole(u.id, u.roles, role)}
-                      className={`rounded-full px-2 py-0.5 text-xs ${
-                        u.roles.includes(role)
-                          ? 'bg-brand-100 text-brand-700'
-                          : 'bg-gray-100 text-gray-400'
-                      } ${isAdmin ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+      <div className="rounded-xl border border-border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Họ tên</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Vai trò</TableHead>
+              <TableHead>Trạng thái</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading && (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center text-muted-foreground">
+                  Đang tải...
+                </TableCell>
+              </TableRow>
+            )}
+            {data?.content.map((u) => (
+              <TableRow key={u.id}>
+                <TableCell className="font-medium text-foreground">{u.fullName}</TableCell>
+                <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ALL_ROLES.map((role) => (
+                      <button
+                        key={role}
+                        disabled={!isAdmin}
+                        onClick={() => toggleRole(u.id, u.roles, role)}
+                        className={cn(
+                          'rounded-full px-2.5 py-0.5 text-xs transition-colors',
+                          u.roles.includes(role)
+                            ? 'bg-brand-100 text-brand-700'
+                            : 'bg-muted text-muted-foreground',
+                          isAdmin ? 'cursor-pointer' : 'cursor-not-allowed',
+                        )}
+                      >
+                        {role.replace('ROLE_', '')}
+                      </button>
+                    ))}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <button
+                    onClick={() =>
+                      statusMutation.mutate({ id: u.id, status: u.status === 'ACTIVE' ? 'LOCKED' : 'ACTIVE' })
+                    }
+                  >
+                    <Badge
+                      variant="secondary"
+                      className={u.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}
                     >
-                      {role.replace('ROLE_', '')}
-                    </button>
-                  ))}
-                </div>
-              </td>
-              <td className="py-2">
-                <button
-                  onClick={() =>
-                    statusMutation.mutate({ id: u.id, status: u.status === 'ACTIVE' ? 'LOCKED' : 'ACTIVE' })
-                  }
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    u.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}
-                >
-                  {u.status === 'ACTIVE' ? 'Hoạt động' : 'Đã khóa'}
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {!isAdmin && <p className="mt-2 text-xs text-gray-400">Chỉ ADMIN mới có thể thay đổi vai trò người dùng.</p>}
+                      {u.status === 'ACTIVE' ? 'Hoạt động' : 'Đã khóa'}
+                    </Badge>
+                  </button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      {!isAdmin && <p className="mt-2 text-xs text-muted-foreground">Chỉ ADMIN mới có thể thay đổi vai trò người dùng.</p>}
     </div>
   );
 }

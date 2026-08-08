@@ -1,10 +1,16 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { createVoucher, deleteVoucher, getVouchers } from '../../api/admin/vouchers';
 import { getErrorMessage } from '../../lib/errors';
 import { formatCurrency } from '../../lib/format';
 import type { VoucherRequest } from '../../types/voucher';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const emptyForm: VoucherRequest = {
   code: '',
@@ -18,7 +24,6 @@ export function AdminVouchersPage() {
   const queryClient = useQueryClient();
   const { data: vouchers } = useQuery({ queryKey: ['admin-vouchers'], queryFn: getVouchers });
   const [form, setForm] = useState<VoucherRequest>(emptyForm);
-  const [error, setError] = useState<string | null>(null);
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['admin-vouchers'] });
@@ -29,16 +34,16 @@ export function AdminVouchersPage() {
     onSuccess: () => {
       invalidate();
       setForm(emptyForm);
+      toast.success('Đã thêm voucher');
     },
-    onError: (err) => setError(getErrorMessage(err)),
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
   const deleteMutation = useMutation({ mutationFn: (id: number) => deleteVoucher(id), onSuccess: invalidate });
 
   function handleSubmit() {
-    setError(null);
     if (!form.code.trim() || !form.discountValue) {
-      setError('Vui lòng nhập mã và giá trị giảm giá');
+      toast.error('Vui lòng nhập mã và giá trị giảm giá');
       return;
     }
     createMutation.mutate(form);
@@ -46,89 +51,103 @@ export function AdminVouchersPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-gray-900">Voucher</h1>
+      <h1 className="font-display mb-6 text-2xl font-semibold text-foreground">Voucher</h1>
 
-      <div className="mb-6 flex flex-wrap items-end gap-2 rounded-md border border-gray-200 p-4">
-        <div>
-          <label className="block text-xs text-gray-500">Mã</label>
-          <input
+      <div className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Mã</Label>
+          <Input
             value={form.code}
             onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
-            className="mt-1 w-28 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            className="w-28"
           />
         </div>
-        <div>
-          <label className="block text-xs text-gray-500">Loại</label>
-          <select
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Loại</Label>
+          <Select
             value={form.discountType}
-            onChange={(e) => setForm({ ...form, discountType: e.target.value as 'PERCENT' | 'FIXED' })}
-            className="mt-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            onValueChange={(v) => setForm({ ...form, discountType: v as 'PERCENT' | 'FIXED' })}
           >
-            <option value="PERCENT">Phần trăm (%)</option>
-            <option value="FIXED">Số tiền cố định</option>
-          </select>
+            <SelectTrigger className="w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="PERCENT">Phần trăm (%)</SelectItem>
+              <SelectItem value="FIXED">Số tiền cố định</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <div>
-          <label className="block text-xs text-gray-500">Giá trị</label>
-          <input
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Giá trị</Label>
+          <Input
             type="number"
             value={form.discountValue || ''}
             onChange={(e) => setForm({ ...form, discountValue: Number(e.target.value) })}
-            className="mt-1 w-24 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            className="w-24"
           />
         </div>
-        <div>
-          <label className="block text-xs text-gray-500">Đơn tối thiểu</label>
-          <input
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Đơn tối thiểu</Label>
+          <Input
             type="number"
             value={form.minOrderValue ?? ''}
             onChange={(e) => setForm({ ...form, minOrderValue: e.target.value ? Number(e.target.value) : undefined })}
-            className="mt-1 w-28 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            className="w-28"
           />
         </div>
-        <div>
-          <label className="block text-xs text-gray-500">Giới hạn lượt dùng</label>
-          <input
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Giới hạn lượt dùng</Label>
+          <Input
             type="number"
             value={form.usageLimit ?? ''}
             onChange={(e) => setForm({ ...form, usageLimit: e.target.value ? Number(e.target.value) : undefined })}
-            className="mt-1 w-24 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            className="w-24"
           />
         </div>
-        <button onClick={handleSubmit} className="rounded-md bg-brand-600 px-4 py-1.5 text-sm text-white hover:bg-brand-700">
+        <Button onClick={handleSubmit} disabled={createMutation.isPending}>
           Thêm mới
-        </button>
-        {error && <p className="w-full text-sm text-red-600">{error}</p>}
+        </Button>
       </div>
 
-      <table className="w-full text-left text-sm">
-        <thead>
-          <tr className="border-b border-gray-200 text-gray-500">
-            <th className="py-2">Mã</th>
-            <th className="py-2">Loại</th>
-            <th className="py-2">Giá trị</th>
-            <th className="py-2">Đơn tối thiểu</th>
-            <th className="py-2">Đã dùng / Giới hạn</th>
-            <th className="py-2"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {vouchers?.map((v) => (
-            <tr key={v.id} className="border-b border-gray-100">
-              <td className="py-2 font-medium">{v.code}</td>
-              <td className="py-2">{v.discountType === 'PERCENT' ? 'Phần trăm' : 'Cố định'}</td>
-              <td className="py-2">{v.discountType === 'PERCENT' ? `${v.discountValue}%` : formatCurrency(v.discountValue)}</td>
-              <td className="py-2 text-gray-500">{v.minOrderValue ? formatCurrency(v.minOrderValue) : '-'}</td>
-              <td className="py-2 text-gray-500">{v.usedCount} / {v.usageLimit ?? '∞'}</td>
-              <td className="py-2 text-right">
-                <button onClick={() => deleteMutation.mutate(v.id)} className="text-gray-500 hover:text-red-600">
-                  <Trash2 size={14} />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="rounded-xl border border-border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Mã</TableHead>
+              <TableHead>Loại</TableHead>
+              <TableHead>Giá trị</TableHead>
+              <TableHead>Đơn tối thiểu</TableHead>
+              <TableHead>Đã dùng / Giới hạn</TableHead>
+              <TableHead className="text-right">Thao tác</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {vouchers?.map((v) => (
+              <TableRow key={v.id}>
+                <TableCell className="font-medium text-foreground">{v.code}</TableCell>
+                <TableCell className="text-muted-foreground">{v.discountType === 'PERCENT' ? 'Phần trăm' : 'Cố định'}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {v.discountType === 'PERCENT' ? `${v.discountValue}%` : formatCurrency(v.discountValue)}
+                </TableCell>
+                <TableCell className="text-muted-foreground">{v.minOrderValue ? formatCurrency(v.minOrderValue) : '-'}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {v.usedCount} / {v.usageLimit ?? '∞'}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => deleteMutation.mutate(v.id)}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
