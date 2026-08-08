@@ -34,7 +34,7 @@ function App() {
         <Route path="cart" element={<CartPage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
-        <Route path="payment/vnpay-return" element={<PaymentResultPage />} />
+        <Route path="payment/momo-return" element={<PaymentResultPage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="checkout" element={<CheckoutPage />} />

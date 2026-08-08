@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { Landmark, Truck } from 'lucide-react';
+import { Truck, Wallet } from 'lucide-react';
 import { useCart } from '../../hooks/useCart';
 import { checkout } from '../../api/orders';
 import { formatCurrency } from '../../lib/format';
@@ -22,7 +22,7 @@ const checkoutSchema = z.object({
   shippingAddress: z.string().min(1, 'Vui lòng nhập địa chỉ giao hàng'),
   receiverName: z.string().min(1, 'Vui lòng nhập tên người nhận'),
   receiverPhone: z.string().min(1, 'Vui lòng nhập số điện thoại'),
-  paymentMethod: z.enum(['COD', 'VNPAY']),
+  paymentMethod: z.enum(['COD', 'MOMO']),
   voucherCode: z.string().optional(),
 });
 
@@ -30,7 +30,7 @@ type CheckoutForm = z.infer<typeof checkoutSchema>;
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string; desc: string; icon: typeof Truck }[] = [
   { value: 'COD', label: 'Thanh toán khi nhận hàng', desc: 'Trả tiền mặt cho shipper', icon: Truck },
-  { value: 'VNPAY', label: 'VNPay', desc: 'Thanh toán trực tuyến an toàn', icon: Landmark },
+  { value: 'MOMO', label: 'MoMo', desc: 'Thanh toán qua ví MoMo', icon: Wallet },
 ];
 
 export function CheckoutPage() {

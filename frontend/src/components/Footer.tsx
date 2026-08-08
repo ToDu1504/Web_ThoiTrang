@@ -53,7 +53,7 @@ export function Footer() {
           <p className="text-xs font-semibold uppercase tracking-wider text-background/50">Thanh toán</p>
           <ul className="mt-4 space-y-2.5 text-sm text-background/75">
             <li>Thanh toán khi nhận hàng (COD)</li>
-            <li>VNPay</li>
+            <li>MoMo</li>
           </ul>
         </div>
       </div>

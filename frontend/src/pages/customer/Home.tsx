@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const TRUST_BADGES = [
   { icon: Truck, title: 'Giao hàng toàn quốc', desc: 'Miễn phí cho đơn từ 500.000₫' },
-  { icon: ShieldCheck, title: 'Thanh toán an toàn', desc: 'Hỗ trợ COD & VNPay' },
+  { icon: ShieldCheck, title: 'Thanh toán an toàn', desc: 'Hỗ trợ COD & MoMo' },
   { icon: RotateCcw, title: 'Sản phẩm chính hãng', desc: 'Kiểm định chất lượng kỹ càng' },
 ];
 

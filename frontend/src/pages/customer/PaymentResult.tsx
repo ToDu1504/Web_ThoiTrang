@@ -6,20 +6,20 @@ import { apiClient } from '../../api/client';
 import type { ApiResponse } from '../../types/common';
 import { Button } from '@/components/ui/button';
 
-interface VnPayResult {
+interface MoMoResult {
   orderCode: string;
   success: boolean;
-  responseCode: string;
+  resultCode: string;
 }
 
 export function PaymentResultPage() {
   const [searchParams] = useSearchParams();
-  const [result, setResult] = useState<VnPayResult | null>(null);
+  const [result, setResult] = useState<MoMoResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     apiClient
-      .get<ApiResponse<VnPayResult>>(`/api/payments/vnpay/return?${searchParams.toString()}`)
+      .get<ApiResponse<MoMoResult>>(`/api/payments/momo/return?${searchParams.toString()}`)
       .then((res) => setResult(res.data.data))
       .catch(() => setError('Không thể xác minh giao dịch thanh toán.'));
   }, [searchParams]);

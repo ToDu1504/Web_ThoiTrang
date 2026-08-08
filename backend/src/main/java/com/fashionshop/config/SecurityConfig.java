@@ -62,7 +62,7 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
                                 "/api/products/**", "/api/categories/**", "/api/brands/**", "/uploads/**").permitAll()
                         .requestMatchers("/api/cart/**").permitAll()
-                        .requestMatchers("/api/payments/vnpay/**").permitAll()
+                        .requestMatchers("/api/payments/momo/**").permitAll()
                         .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "STAFF")
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider)

@@ -19,7 +19,7 @@ Xây dựng website bán quần áo (e-commerce thời trang) gồm:
 1. Quản lý sản phẩm (danh mục, biến thể size/màu, ảnh, giá, tồn kho)
 2. Tìm kiếm & lọc sản phẩm (theo danh mục, giá, size, màu, thương hiệu)
 3. Giỏ hàng (cart) — cho cả guest (session/localStorage) và user đăng nhập
-4. Đặt hàng & thanh toán (COD, chuyển khoản, cổng thanh toán như MoMo/VNPay)
+4. Đặt hàng & thanh toán (COD, chuyển khoản, cổng thanh toán MoMo)
 5. Quản lý đơn hàng (trạng thái: chờ xử lý → xác nhận → đang giao → hoàn thành/hủy)
 6. Đăng ký/đăng nhập (JWT), quên mật khẩu, xác thực email
 7. Đánh giá & bình luận sản phẩm
@@ -69,9 +69,9 @@ Xây dựng website bán quần áo (e-commerce thời trang) gồm:
 └───────────────────┘ └──────────────────┘ └───────────────────────┘
         │
 ┌───────▼───────────────┐
-│  VNPay sandbox API      │
-│  (build/ký/verify URL   │
-│  thanh toán, callback   │
+│  MoMo sandbox API       │
+│  (POST tạo payment URL, │
+│  ký/verify callback     │
 │  return + IPN)          │
 └──────────────────────────┘
 ```
@@ -352,16 +352,21 @@ Request → JwtAuthFilter (đọc token từ header Authorization)
 - Mật khẩu: BCryptPasswordEncoder
 - CORS: cấu hình cho phép domain frontend
 
-### 4.6. Tích hợp thanh toán (MoMo/VNPay)
+### 4.6. Tích hợp thanh toán (MoMo)
 
 ```
-Client → POST /api/orders (checkout)
+Client → POST /api/orders (checkout, paymentMethod=MOMO)
        → OrderService tạo order (status: PENDING, payment_status: UNPAID)
-       → PaymentService gọi API cổng thanh toán (MoMo AIO/VNPay) tạo payment URL
-       → Trả về payment URL cho FE redirect user
-       → Cổng thanh toán gọi callback (IPN) về BE
-       → PaymentService xác thực chữ ký, cập nhật order (payment_status: PAID)
+       → MoMoService POST sang MoMo sandbox (/v2/gateway/api/create, ký HMAC-SHA256)
+       → MoMo trả về payUrl → BE trả payUrl cho FE redirect user
+       → User thanh toán trên MoMo → MoMo gọi callback (IPN, server-to-server) về BE
+       → MoMoService xác thực chữ ký IPN, cập nhật order (payment_status: PAID)
+       → Song song: MoMo redirect browser về momo.redirect-url (FE) → FE gọi lại
+         GET /api/payments/momo/return để hiển thị kết quả (chỉ để hiển thị, không
+         phải nguồn sự thật — IPN mới là nguồn sự thật cho payment_status)
 ```
+
+Trước đây dự án tích hợp VNPay (build/ký URL redirect hoàn toàn ở BE, không cần gọi API ra ngoài); đã thay bằng MoMo — khác biệt quan trọng nhất là MoMo yêu cầu một lệnh gọi server-to-server (`POST` có ký) để lấy `payUrl` trước khi redirect, thay vì tự dựng URL tại chỗ như VNPay.
 
 ### 4.7. Xử lý tồn kho (tránh oversell)
 
@@ -407,7 +412,7 @@ src/
 | Mapping | MapStruct |
 | API docs | Springdoc OpenAPI (Swagger UI) |
 | Upload ảnh | AWS S3 / Cloudinary |
-| Thanh toán | MoMo AIO API / VNPay |
+| Thanh toán | MoMo AIO API |
 | Frontend | React + TypeScript + TailwindCSS |
 | Build tool | Maven hoặc Gradle |
 | Containerize | Docker + Docker Compose |
@@ -423,7 +428,7 @@ src/
 2. ✅ **Giai đoạn 2 – Auth**: Đăng ký/đăng nhập JWT (access + refresh token), phân quyền theo Role
 3. ✅ **Giai đoạn 3 – Sản phẩm**: CRUD sản phẩm (kèm biến thể size/màu), danh mục, thương hiệu, upload ảnh (lưu đĩa cục bộ, trừu tượng hóa qua `FileStorageService` để sau đổi sang S3/Cloudinary)
 4. ✅ **Giai đoạn 4 – Giỏ hàng & Đơn hàng**: Cart (khách + thành viên), Checkout, khóa bi quan chống oversell, quản lý trạng thái đơn
-5. ✅ **Giai đoạn 5 – Thanh toán**: Tích hợp VNPay (build + ký + verify URL thanh toán, xử lý callback return/IPN). MoMo **chưa** làm — xem ghi chú trong lịch sử trao đổi, chưa có API contract được kiểm chứng
+5. ✅ **Giai đoạn 5 – Thanh toán**: Tích hợp MoMo sandbox (AIO API v2 — POST tạo payment URL có ký HMAC-SHA256, xử lý callback return/IPN, verify chữ ký độc lập ở cả hai). Trước đây từng làm VNPay, đã thay hẳn bằng MoMo.
 6. ✅ **Giai đoạn 6 – Nâng cao**: Review, Voucher (áp dụng lúc checkout), Wishlist, Cache Redis (danh mục/thương hiệu/chi tiết sản phẩm)
 7. ✅ **Giai đoạn 7 – Admin dashboard**: Thống kê doanh thu/đơn hàng/top sản phẩm bán chạy, quản lý người dùng (khóa/mở khóa, gán vai trò)
 
@@ -481,11 +486,11 @@ Giao diện theo hướng "shop thời trang hiện đại": nền ivory ấm + 
 - `GET /api/cart`, `POST /api/cart/items`, `PUT /api/cart/items/{id}`, `DELETE /api/cart/items/{id}`
 
 **Customer** (cần JWT)
-- `POST /api/orders` (checkout, hỗ trợ `voucherCode`, `paymentMethod`: COD/VNPAY → trả kèm `paymentUrl` nếu VNPAY)
+- `POST /api/orders` (checkout, hỗ trợ `voucherCode`, `paymentMethod`: COD/MOMO → trả kèm `paymentUrl` nếu MOMO)
 - `GET /api/orders/{id}`, `GET /api/orders/my-orders`
 - `POST /api/reviews`
 - `GET /api/wishlist`, `POST /api/wishlist`, `DELETE /api/wishlist/{productId}`
-- `GET /api/payments/vnpay/return` (trang kết quả thanh toán VNPay redirect về)
+- `GET /api/payments/momo/return` (trang kết quả thanh toán MoMo redirect về), `POST /api/payments/momo/ipn` (server-to-server, MoMo gọi trực tiếp)
 
 **Admin/Staff** (`ROLE_ADMIN`/`ROLE_STAFF`, riêng gán role user chỉ `ROLE_ADMIN`)
 - `/api/admin/categories`, `/api/admin/brands` (CRUD)
@@ -534,7 +539,7 @@ frontend/
 
 1. ✅ **Phase 1 — Khởi tạo & Auth**: scaffold Vite + Tailwind + Router, axios client + interceptor (tự refresh token khi 401), trang Login/Register, layout chung (Header/Footer), Zustand authStore
 2. ✅ **Phase 2 — Duyệt sản phẩm**: trang chủ, danh sách sản phẩm (filter danh mục/thương hiệu/giá, tìm kiếm), chi tiết sản phẩm (chọn size/màu, ảnh, đánh giá)
-3. ✅ **Phase 3 — Giỏ hàng & Checkout**: thêm/sửa/xóa giỏ hàng (khách qua `X-Session-Id` + thành viên qua JWT), trang checkout, áp voucher, chọn COD/VNPay (redirect sang cổng thanh toán), trang kết quả thanh toán (`/payment/vnpay-return`)
+3. ✅ **Phase 3 — Giỏ hàng & Checkout**: thêm/sửa/xóa giỏ hàng (khách qua `X-Session-Id` + thành viên qua JWT), trang checkout, áp voucher, chọn COD/MoMo (redirect sang cổng thanh toán), trang kết quả thanh toán (`/payment/momo-return`)
 4. ✅ **Phase 4 — Tài khoản khách hàng**: lịch sử đơn hàng, chi tiết đơn, wishlist
 5. ✅ **Phase 5 — Admin dashboard**: layout riêng có sidebar, thống kê, CRUD sản phẩm (kèm biến thể + upload/xóa ảnh)/danh mục/thương hiệu/voucher, quản lý đơn hàng (đổi trạng thái), quản lý user (khóa/mở khóa, gán vai trò — ADMIN-only)
 6. ✅ **Phase 6 — Redesign giao diện**: chuyển toàn bộ UI (khách hàng + admin) sang shadcn/ui + Framer Motion, thiết lập design system riêng (màu, font, spacing) thay cho bản Tailwind thô ban đầu
@@ -561,10 +566,16 @@ Database `fashionshop_db` cần tồn tại sẵn (tạo 1 lần: `CREATE DATABA
 
 ```bash
 cd backend
-VNPAY_TMN_CODE=xxx VNPAY_HASH_SECRET=xxx ./mvnw.cmd spring-boot:run
+./mvnw.cmd spring-boot:run
 ```
 
-`VNPAY_TMN_CODE`/`VNPAY_HASH_SECRET` không bắt buộc để chạy app, chỉ cần khi muốn test luồng thanh toán VNPay thật (đăng ký tài khoản sandbox miễn phí tại vnpayment.vn để lấy). Backend chạy ở `http://localhost:8080`.
+`application.properties` đã có sẵn bộ credentials MoMo test dùng chung (`momo.partner-code=MOMO`, công khai rộng rãi cho developer, không gắn merchant/tiền thật nào) nên đặt hàng `paymentMethod=MOMO` chạy được ngay không cần cấu hình gì thêm — đã test thực tế, MoMo sandbox trả về `payUrl` hợp lệ. Nếu có tài khoản merchant test riêng, override bằng env var:
+
+```bash
+MOMO_PARTNER_CODE=xxx MOMO_ACCESS_KEY=xxx MOMO_SECRET_KEY=xxx ./mvnw.cmd spring-boot:run
+```
+
+(đăng ký tại business.momo.vn hoặc liên hệ merchant.care@momo.vn). Thiếu cả ba biến này thì dùng bộ mặc định ở trên; chỉ khi override bằng chuỗi rỗng mới bị chặn báo lỗi rõ ràng ngay lúc checkout thay vì lộ lỗi crypto khó hiểu. Backend chạy ở `http://localhost:8080`.
 
 ### 10.3. Chạy frontend
 
@@ -574,7 +585,7 @@ npm install   # lần đầu
 npm run dev -- --port 5174 --strictPort
 ```
 
-**Bắt buộc chạy đúng cổng 5174** — backend cấu hình `vnpay.return-url` trỏ cứng vào `http://localhost:5174/payment/vnpay-return`. Frontend chạy ở `http://localhost:5174`.
+**Bắt buộc chạy đúng cổng 5174** — backend cấu hình `momo.redirect-url` trỏ cứng vào `http://localhost:5174/payment/momo-return`. Frontend chạy ở `http://localhost:5174`.
 
 ### 10.4. Lưu ý khi gặp lỗi
 
@@ -588,3 +599,11 @@ Mật khẩu chung: `123456`
 |---|---|---|
 | `test@example.com` | ROLE_ADMIN, ROLE_CUSTOMER | Nguyen Van A — dùng để đăng nhập vào `/admin` |
 | `userb@example.com` | ROLE_CUSTOMER | Tran Thi B — tài khoản khách hàng thường |
+
+Bộ tài khoản test theo từng role (1 role/tài khoản), mật khẩu chung `Password123`, tạo trực tiếp qua SQL (insert thẳng vào `users`/`user_roles`, không qua `/api/auth/register` vì endpoint đó chỉ gán `ROLE_CUSTOMER` mặc định):
+
+| Email | Vai trò | Ghi chú |
+|---|---|---|
+| `admin@fashionshop.com` | ROLE_ADMIN | Admin User |
+| `staff@fashionshop.com` | ROLE_STAFF | Staff User |
+| `customer@fashionshop.com` | ROLE_CUSTOMER | Customer User |

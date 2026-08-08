@@ -36,8 +36,8 @@ import com.fashionshop.repository.OrderRepository;
 import com.fashionshop.repository.ProductVariantRepository;
 import com.fashionshop.repository.UserRepository;
 import com.fashionshop.repository.VoucherRepository;
+import com.fashionshop.service.MoMoService;
 import com.fashionshop.service.OrderService;
-import com.fashionshop.service.VnPayService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -53,7 +53,7 @@ public class OrderServiceImpl implements OrderService {
     private final ProductVariantRepository productVariantRepository;
     private final UserRepository userRepository;
     private final VoucherRepository voucherRepository;
-    private final VnPayService vnPayService;
+    private final MoMoService moMoService;
 
     @Value("${app.shipping-fee:30000}")
     private BigDecimal shippingFee;
@@ -153,8 +153,8 @@ public class OrderServiceImpl implements OrderService {
         cartRepository.save(cart);
 
         String paymentUrl = null;
-        if (order.getPaymentMethod() == PaymentMethod.VNPAY) {
-            paymentUrl = vnPayService.createPaymentUrl(order, clientIp);
+        if (order.getPaymentMethod() == PaymentMethod.MOMO) {
+            paymentUrl = moMoService.createPaymentUrl(order, clientIp);
         }
 
         return toResponse(order, paymentUrl);
