@@ -1,11 +1,19 @@
-import { type FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Heart, LogOut, Menu, Package, Search, ShoppingBag, User } from 'lucide-react';
-import { useAuthStore } from '../store/authStore';
-import { useCart } from '../hooks/useCart';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { type FormEvent, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Heart,
+  LogOut,
+  Menu,
+  Package,
+  Search,
+  ShoppingBag,
+  User,
+} from "lucide-react";
+import { useAuthStore } from "../store/authStore";
+import { useCart } from "../hooks/useCart";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,32 +21,38 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+} from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const NAV_LINKS = [
-  { to: '/products', label: 'Tất cả sản phẩm' },
-  { to: '/products?categoryId=1', label: 'Nữ' },
-  { to: '/products?categoryId=2', label: 'Nam' },
-  { to: '/products?sort=createdAt,desc', label: 'Hàng mới' },
+  { to: "/products", label: "Tất cả sản phẩm" },
+  { to: "/products?categoryId=1", label: "Nam" },
+  { to: "/products?categoryId=2", label: "Nữ" },
+  { to: "/products?sort=createdAt,desc", label: "Hàng mới" },
 ];
 
 export function Header() {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuthStore();
   const { data: cart } = useCart();
-  const [keyword, setKeyword] = useState('');
+  const [keyword, setKeyword] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  const isAdmin = user?.roles.some((role) => role === 'ROLE_ADMIN' || role === 'ROLE_STAFF');
+  const isAdmin = user?.roles.some(
+    (role) => role === "ROLE_ADMIN" || role === "ROLE_STAFF",
+  );
 
   function handleLogout() {
     logout();
-    navigate('/');
+    navigate("/");
   }
 
   function handleSearch(event: FormEvent) {
     event.preventDefault();
-    navigate(keyword ? `/products?keyword=${encodeURIComponent(keyword)}` : '/products');
+    navigate(
+      keyword
+        ? `/products?keyword=${encodeURIComponent(keyword)}`
+        : "/products",
+    );
     setSearchOpen(false);
   }
 
@@ -51,7 +65,12 @@ export function Header() {
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="md:hidden" aria-label="Menu">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              aria-label="Menu"
+            >
               <Menu className="size-5" />
             </Button>
           </SheetTrigger>
@@ -70,7 +89,10 @@ export function Header() {
           </SheetContent>
         </Sheet>
 
-        <Link to="/" className="font-display text-2xl font-semibold tracking-tight text-foreground">
+        <Link
+          to="/"
+          className="font-display text-2xl font-semibold tracking-tight text-foreground"
+        >
           FashionShop
         </Link>
 
@@ -96,7 +118,7 @@ export function Header() {
                   initial={{ width: 0, opacity: 0 }}
                   animate={{ width: 220, opacity: 1 }}
                   exit={{ width: 0, opacity: 0 }}
-                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
                   onSubmit={handleSearch}
                   className="overflow-hidden"
                 >
@@ -110,8 +132,18 @@ export function Header() {
                   />
                 </motion.form>
               ) : (
-                <motion.div key="search-icon" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <Button variant="ghost" size="icon" aria-label="Tìm kiếm" onClick={() => setSearchOpen(true)}>
+                <motion.div
+                  key="search-icon"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Tìm kiếm"
+                    onClick={() => setSearchOpen(true)}
+                  >
                     <Search className="size-4.5" />
                   </Button>
                 </motion.div>
@@ -121,7 +153,12 @@ export function Header() {
 
           <Sheet open={searchOpen} onOpenChange={setSearchOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Tìm kiếm" className="md:hidden">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Tìm kiếm"
+                className="md:hidden"
+              >
                 <Search className="size-4.5" />
               </Button>
             </SheetTrigger>
@@ -148,7 +185,13 @@ export function Header() {
             </Button>
           )}
 
-          <Button variant="ghost" size="icon" asChild aria-label="Giỏ hàng" className="relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            asChild
+            aria-label="Giỏ hàng"
+            className="relative"
+          >
             <Link to="/cart">
               <ShoppingBag className="size-4.5" />
               <AnimatePresence>
@@ -176,7 +219,9 @@ export function Header() {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel className="font-normal">
                   <p className="text-xs text-muted-foreground">Xin chào</p>
-                  <p className="truncate text-sm font-medium">{user?.fullName ?? user?.email}</p>
+                  <p className="truncate text-sm font-medium">
+                    {user?.fullName ?? user?.email}
+                  </p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
@@ -192,7 +237,10 @@ export function Header() {
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="cursor-pointer text-destructive focus:text-destructive"
+                >
                   <LogOut className="mr-2 size-4" /> Đăng xuất
                 </DropdownMenuItem>
               </DropdownMenuContent>
